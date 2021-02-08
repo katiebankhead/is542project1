@@ -23,7 +23,7 @@
     <div id='map'></div>
   </div>
 
-  <script src="scriptures.js" type="text/javascript"></script>
+  <script src="js/scriptures.js" type="text/javascript"></script>
 
   <script type="text/javascript">
     function ready(readyListener) {
@@ -37,6 +37,7 @@
 
     ready(function() {
       Scriptures.init(() => console.log("init is complete"));
+      window.addEventListener("hashchange", Scriptures.onHashChanged);
     })
   </script>
 </body>
