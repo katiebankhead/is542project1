@@ -63,7 +63,10 @@ const Scriptures = (function () {
     let navigateBook;
     let navigateChapter;
     let navigateHome;
+    let nextChapter;
     let onHashChanged;
+    let previousChapter
+    let titleForBookChapter;
     let volumesGridContent;
 
     /**----------------------------------------------------
@@ -311,6 +314,36 @@ const Scriptures = (function () {
         });
     };
 
+    nextChapter = function(bookId, chapter) {
+        let book = books[bookId];
+
+        if (book !== undefined) {
+            if (chapter < book.numChapters) {
+                return [
+                    bookId,
+                    chapter + 1,
+                    titleForBookChapter(book, chapter + 1)
+                ];
+            }
+
+            let nextBook = books[bookId + 1];
+
+            if (nextBook !== undefined) {
+                let nextChapterValue = 0;
+                if (nextBook.numChapters > 0) {
+                    nextChapterValue = 1;
+                }
+
+                return [
+                    nextBook.id,
+                    nextChapterValue,
+                    titleForBookChapter(nextBook, nextChapterValue)
+                ];
+            }
+
+        }
+    };
+
     onHashChanged = function() {
         let ids = [];
 
@@ -354,6 +387,41 @@ const Scriptures = (function () {
             }
         }
     };
+
+    previousChapter = function(bookId, chapter) {
+        let book = books[bookId];
+
+        if (book !== undefined) {
+            if (chapter > 1) {
+                return [
+                    bookId,
+                    chapter - 1,
+                    titleForBookChapter(book, chapter - 1)
+                ]
+            }
+
+            let prevBook = books[bookId - 1];
+
+            if (prevBook !== undefined) {
+                return [
+                    bookId - 1,
+                    prevBook.numChapters,
+                    titleForBookChapter(prevBook, prevBook.numChapters)
+                ];
+            }
+        }
+
+    };
+
+    titleForBookChapter = function (book, chapter) {
+        if(book !== undefined) {
+            if (chapter > 0) {
+                return `${book.tocName} ${chapter}`;
+            }
+
+            return book.tocName;
+        }
+    }
 
     volumesGridContent = function (volumeId) {
         let gridContent = "";
