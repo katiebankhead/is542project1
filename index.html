@@ -36,7 +36,7 @@
     }
 
     ready(function() {
-      Scriptures.init(() => console.log("init is complete"));
+      Scriptures.init(() => {Scriptures.onHashChanged()});
       window.addEventListener("hashchange", Scriptures.onHashChanged);
     })
   </script>
