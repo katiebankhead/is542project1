@@ -340,33 +340,47 @@ const Scriptures = (function () {
         return `<a${idString}${classString}${hrefString}>${contentString}</a>`;
     };
 
-
-    // Replace calls to the XMLHttpRequest API in your Project 1 solution with calls to the 
-    // fetch API we explored on Day 10.
     init = function (callback) {
         let booksLoaded = false;
         let volumesLoaded = false;
 
-        ajax("https://scriptures.byu.edu/mapscrip/model/books.php",
-            (data) => {
+        fetch("https://scriptures.byu.edu/mapscrip/model/books.php")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not okay.");
+                }
+                return response.json();
+            })
+            .then(data => {
                 books = data;
                 booksLoaded = true;
 
                 if (volumesLoaded) {
                     cacheBooks(callback);
                 }
-            }
-        );
-        ajax("https://scriptures.byu.edu/mapscrip/model/volumes.php",
-            (data) => {
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
+
+        fetch("https://scriptures.byu.edu/mapscrip/model/volumes.php")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not okay.");
+                }
+                return response.json();
+            })
+            .then(data => {
                 volumes = data;
                 volumesLoaded = true;
 
                 if (booksLoaded) {
                     cacheBooks(callback);
                 }
-            }
-        );
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
     };
 
     injectBreadcrumbs = function(volume, book, chapter) {
