@@ -110,6 +110,7 @@ const Scriptures = (function () {
         gmMarkers.push(marker);
     };
 
+    // should I delete this?
     ajax = function (url, successCallback, failureCallback, skipJsonParse) {
         let request = new XMLHttpRequest();
 
@@ -237,7 +238,7 @@ const Scriptures = (function () {
             if (isJst !== undefined) {
                 options += "&jst=JST";
             }
-
+            
             return `${URL_SCRIPTURES}?book=${bookId}&chap=${chapter}&verses${options}`
         }
     };
@@ -298,6 +299,7 @@ const Scriptures = (function () {
         return `<div${idString}${classString}>${contentString}</div>`;
     };
 
+    // TODO: add optional class string
     htmlElement = function (tagName, content) {
         return `<${tagName}>${content}</${tagName}>`;
     };
@@ -315,6 +317,7 @@ const Scriptures = (function () {
         return htmlListItem(htmlLink({content, href: `#${href}`}));
     }
 
+    // TODO: add optional title string 
     htmlLink = function (parameters) {
         let classString = "";
         let contentString = "";
@@ -408,6 +411,9 @@ const Scriptures = (function () {
         document.getElementById(DIV_BREADCRUMBS).innerHTML = htmlElement(TAG_UNORDERED_LIST, crumbs);
     }
 
+    // TODO: markerIndex function
+    //TODO: mergePlacename function
+
     navigateBook = function (bookId) {
         let book = books[bookId];
 
@@ -426,7 +432,25 @@ const Scriptures = (function () {
         requestedBookId = bookId;
         requestedChapter = chapter;
 
+        //TODO: nextprev functionality
+
         ajax(encodedScripturesUrlParameters(bookId, chapter), getScripturesCallback, getScripturesFailure, true);
+        // fetch(encodedScripturesUrlParameters(bookId, chapter))
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw new Error("Response was not okay.")
+        //         }
+        //         console.log(response)
+        //         // return response;
+        //     })
+            // .then(data => {
+            //     if (typeof successCallback === "function") {
+            //         successCallback(data);
+            //     }
+            // })
+            // .catch(error => {
+            //     console.error('There has been a problem with your fetch operation:', error);
+            // });
     };
 
     navigateHome = function (volumeId) {
@@ -467,6 +491,8 @@ const Scriptures = (function () {
 
         }
     };
+
+    //TODO: nextPreviousMarkup()
 
     onHashChanged = function () {
         let ids = [];
@@ -533,7 +559,6 @@ const Scriptures = (function () {
                 ];
             }
         }
-
     };
 
     setupMarkers = function () {
