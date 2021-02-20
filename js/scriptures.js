@@ -29,10 +29,13 @@ const CLASS_BOOKS = "books";
 const CLASS_BUTTON = "btn";
 const CLASS_CHAPTER = "chapter";
 const CLASS_VOLUME = "volume";
+const CLASS_ICON = "material-icons";
 const DIV_BREADCRUMBS = "crumbs";
 const DIV_NAV_HEADING = "navheading";
 const DIV_SCRIPTURES_NAVIGATOR = "scripnav";
 const DIV_SCRIPTURES = "scriptures";
+const ICON_NEXT = "skip_next";
+const ICON_PREVIOUS = "skip_previous";
 const INDEX_PLACENAME = 2;
 const INDEX_LATITUDE = 3;
 const INDEX_LONGITUDE = 4;
@@ -40,6 +43,7 @@ const INDEX_FLAG = 11;
 const LAT_LON_PARSER = /\((.*),'(.*)',(.*),(.*),(.*),(.*),(.*),(.*),(.*),(.*),'(.*)'\)/;
 const TAG_HEADERS = "h5";
 const TAG_LIST_ITEM = "li";
+const TAG_SPAN = "span";
 const TAG_UNORDERED_LIST = "ul";
 const TEXT_TOP_LEVEL = "The Scriptures";
 const URL_BASE = "https://scriptures.byu.edu/";
@@ -54,6 +58,7 @@ let books;
 let gmMarkers = [];
 let requestedBookId;
 let requestedChapter;
+let requestedNextPrevious;
 let volumes;
 
 /**----------------------------------------------------
@@ -73,7 +78,6 @@ const addMarker = function (placename, latitude, longitude) {
     gmMarkers.push(marker);
 };
 
-// should I delete this?
 const ajax = function (url, successCallback, failureCallback, skipJsonParse) {
     fetch(url)
     .then(function (response) {
@@ -196,7 +200,7 @@ const encodedScripturesUrlParameters = function (bookId, chapter, verses, isJst)
             options += "&jst=JST";
         }
         
-        return `${URL_SCRIPTURES}?book=${bookId}&chap=${chapter}&verses${options}`
+        return `${URL_SCRIPTURES}?book=${bookId}&chap=${chapter}&verses${options}`;
     }
 };
 
@@ -206,15 +210,9 @@ const getScripturesCallback = function (chapterHtml) {
     document.getElementById(DIV_SCRIPTURES).innerHTML = chapterHtml;
 
     // next/prev navigation
-    // get next chapter
-    // get prev chapter
-
-    const nextChapterHref = nextChapter(book, requestedChapter);
-
-    for (const div of document.getElementsByClassName(DIV_NAV_HEADING)){
-        div.innerHTML += '<div class="nextprev"><a href="#0:201:0">Next</a><a href="#3:210">Prev</a></div>';
-        
-    }
+    document.querySelectorAll(`.${DIV_NAV_HEADING}`).forEach(function (element) {
+        element.innerHTML += `<div class="nextprev">${requestedNextPrevious}</div>`;
+    });
 
     // update breadcrumbs
     if(book !== undefined ){
@@ -256,14 +254,14 @@ const htmlDiv = function (parameters) {
     return `<div${idString}${classString}>${contentString}</div>`;
 };
 
-// TODO: add optional class string
-const htmlElement = function (tagName, content) {
-    return `<${tagName}>${content}</${tagName}>`;
-};
+const htmlElement = function (tagName, content, classValue) {
+    let classString = "";
 
-//TODO: use to create next/back buttons
-const htmlHashLink = function (hashArguments, content) {
-    return `<a href="javascript:void(0)" onclick="changeHash(${hashArguments})">${content}</a>`;
+    if(classValue !== undefined) {
+        classString = ` class="${classValue}"`;
+    }
+
+    return `<${tagName}${classString}>${content}</${tagName}>`;
 };
 
 const htmlListItem = function (content) {
@@ -274,12 +272,12 @@ const htmlListItemLink = function(content, href = ""){
     return htmlListItem(htmlLink({content, href: `#${href}`}));
 }
 
-// TODO: add optional title string 
 const htmlLink = function (parameters) {
     let classString = "";
     let contentString = "";
     let hrefString = "";
     let idString = "";
+    let titleString = "";
 
     if (parameters.classKey !== undefined) {
         classString = ` class="${parameters.classKey}" `;
@@ -297,7 +295,11 @@ const htmlLink = function (parameters) {
         idString = ` id="${parameters.id}"`;
     }
 
-    return `<a${idString}${classString}${hrefString}>${contentString}</a>`;
+    if (parameters.title !== undefined) {
+        titleString = ` title="${parameters.title}"`;
+    }
+
+    return `<a${idString}${classString}${hrefString}${titleString}>${contentString}</a>`;
 };
 
 const init = function (callback) {
@@ -368,7 +370,20 @@ const navigateChapter = function (bookId, chapter) {
     requestedBookId = bookId;
     requestedChapter = chapter;
 
-    //TODO: nextprev functionality
+    let prev = previousChapter(bookId, chapter);
+    let next = nextChapter(bookId, chapter);
+
+    if(prev === undefined) {
+        requestedNextPrevious = "";
+    }
+    else {
+        requestedNextPrevious = nextPreviousMarkup(prev, ICON_PREVIOUS)
+    }
+
+    if(next !== undefined) {
+        requestedNextPrevious += nextPreviousMarkup(next, ICON_NEXT)
+    }
+
 
     ajax(encodedScripturesUrlParameters(bookId, chapter), getScripturesCallback, getScripturesFailure, true);
 };
@@ -412,7 +427,13 @@ const nextChapter = function (bookId, chapter) {
     }
 };
 
-//TODO: nextPreviousMarkup()
+const nextPreviousMarkup = function(nextPrev, icon) {
+    return htmlLink({
+        content: htmlElement(TAG_SPAN, icon, CLASS_ICON),
+        href: `#0:${nextPrev[0]}:${nextPrev[1]}`,
+        title: nextPrev[2]
+    });
+}
 
 const onHashChanged = function () {
     let ids = [];
