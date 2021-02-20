@@ -36,11 +36,13 @@ const DIV_SCRIPTURES_NAVIGATOR = "scripnav";
 const DIV_SCRIPTURES = "scriptures";
 const ICON_NEXT = "skip_next";
 const ICON_PREVIOUS = "skip_previous";
-const INDEX_PLACENAME = 2;
+const INDEX_FLAG = 11;
 const INDEX_LATITUDE = 3;
 const INDEX_LONGITUDE = 4;
-const INDEX_FLAG = 11;
+const INDEX_PLACENAME = 2;
 const LAT_LON_PARSER = /\((.*),'(.*)',(.*),(.*),(.*),(.*),(.*),(.*),(.*),(.*),'(.*)'\)/;
+const MAX_ZOOM_LEVEL = 18;
+const MIN_ZOOM_LEVEL = 6;
 const TAG_HEADERS = "h5";
 const TAG_LIST_ITEM = "li";
 const TAG_SPAN = "span";
@@ -50,12 +52,15 @@ const URL_BASE = "https://scriptures.byu.edu/";
 const URL_BOOKS = `${URL_BASE}mapscrip/model/books.php`;
 const URL_SCRIPTURES = `${URL_BASE}mapscrip/mapgetscrip.php`;
 const URL_VOLUMES = `${URL_BASE}mapscrip/model/volumes.php`;
+const ZOOM_RATIO = 450;
 
 /**----------------------------------------------------
 * PRIVATE VARIABLES
 */
 let books;
+let gmLabels = [];
 let gmMarkers = [];
+let initializedMapLabel = false;
 let requestedBookId;
 let requestedChapter;
 let requestedNextPrevious;
@@ -180,6 +185,7 @@ const chaptersGridContent = function (book) {
     return gridContent;
 };
 
+// TODO: update to match Liddle's code
 const clearMarkers = function () {
     gmMarkers.forEach(function (marker) {
         marker.setMap(null);
@@ -187,6 +193,8 @@ const clearMarkers = function () {
 
     gmMarkers = [];
 };
+
+//TODO: disconnectMapFromMarkers()
 
 const encodedScripturesUrlParameters = function (bookId, chapter, verses, isJst) {
     if (bookId !== undefined && chapter !== undefined) {
@@ -264,14 +272,6 @@ const htmlElement = function (tagName, content, classValue) {
     return `<${tagName}${classString}>${content}</${tagName}>`;
 };
 
-const htmlListItem = function (content) {
-    return htmlElement(TAG_LIST_ITEM, content);
-}
-
-const htmlListItemLink = function(content, href = ""){
-    return htmlListItem(htmlLink({content, href: `#${href}`}));
-}
-
 const htmlLink = function (parameters) {
     let classString = "";
     let contentString = "";
@@ -301,6 +301,14 @@ const htmlLink = function (parameters) {
 
     return `<a${idString}${classString}${hrefString}${titleString}>${contentString}</a>`;
 };
+
+const htmlListItem = function (content) {
+    return htmlElement(TAG_LIST_ITEM, content);
+}
+
+const htmlListItemLink = function(content, href = ""){
+    return htmlListItem(htmlLink({content, href: `#${href}`}));
+}
 
 const init = function (callback) {
     let booksLoaded = false;
@@ -349,8 +357,8 @@ const injectBreadcrumbs = function(volume, book, chapter) {
     document.getElementById(DIV_BREADCRUMBS).innerHTML = htmlElement(TAG_UNORDERED_LIST, crumbs);
 }
 
-// TODO: markerIndex function
-// TODO: mergePlacename function
+// TODO: markerIndex() function
+// TODO: mergePlacename() function
 
 const navigateBook = function (bookId) {
     let book = books[bookId];
@@ -362,7 +370,8 @@ const navigateBook = function (bookId) {
             id: DIV_SCRIPTURES_NAVIGATOR,
             content: chaptersGrid(book)
         })
-        injectBreadcrumbs(volumeForId(book.parentBookId), book)
+        injectBreadcrumbs(volumeForId(book.parentBookId), book);
+        setupMarkers();
     }
 };
 
@@ -384,7 +393,6 @@ const navigateChapter = function (bookId, chapter) {
         requestedNextPrevious += nextPreviousMarkup(next, ICON_NEXT)
     }
 
-
     ajax(encodedScripturesUrlParameters(bookId, chapter), getScripturesCallback, getScripturesFailure, true);
 };
 
@@ -395,6 +403,7 @@ const navigateHome = function (volumeId) {
     });
 
     injectBreadcrumbs(volumeForId(volumeId));
+    setupMarkers();
 };
 
 const nextChapter = function (bookId, chapter) {
@@ -444,8 +453,7 @@ const onHashChanged = function () {
 
     if (ids.length <= 0) {
         navigateHome();
-    }
-    else if (ids.length === 1) {
+    } else if (ids.length === 1) {
         let volumeId = Number(ids[0]);
 
         if (volumeId < volumes[0].id || volumeId > volumes.slice(-1)[0].id) {
@@ -507,8 +515,10 @@ const setupMarkers = function () {
         clearMarkers();
     }
 
+    let matches;
+
     document.querySelectorAll("a[onclick^=\"showLocation(\"]").forEach(function (element) {
-        let matches = LAT_LON_PARSER.exec(element.getAttribute("onclick"));
+        matches = LAT_LON_PARSER.exec(element.getAttribute("onclick"));
 
         if (matches) {
             let placename = matches[INDEX_PLACENAME];
@@ -523,18 +533,11 @@ const setupMarkers = function () {
             addMarker(placename, latitude, longitude);
         }
     });
-
-    // TODO: started working on configuring zoom/view after all markers have been added
-    // let bounds = new google.maps.LatLngBounds();
-    // console.log('bounds', bounds)
-    // for (let i = 0; i < gmMarkers.length; i++) {
-    //     bounds.extend(gmMarkers[i]);
-    // }
-
-    // map.fitBounds(bounds);
-
+    
+    zoomMapToFitMarkers(matches);
 };
 
+// TODO: update to match Dr. Liddle's
 const showLocation = function (geotagId, placename, latitude, longitude, viewLatitude, viewLongitude,
     viewTilt, viewRoll, viewAltitude, viewHeading) {
     console.log(viewAltitude);
@@ -572,6 +575,32 @@ const volumesGridContent = function (volumeId) {
 
     return gridContent + BOTTOM_PADDING;
 };
+
+const zoomMapToFitMarkers = function (matches) {
+    if(gmMarkers.length > 0){
+        if(gmMarkers.length === 1 && matches) {
+            let zoomLevel = Math.round(Number(matches[9]) / ZOOM_RATIO)
+
+            if (zoomLevel < MIN_ZOOM_LEVEL) {
+                zoomLevel = MIN_ZOOM_LEVEL;
+            } else if (zoomLevel > MAX_ZOOM_LEVEL) {
+                zoomLevel = MAX_ZOOM_LEVEL;
+            }
+
+            map.setZoom(zoomLevel);
+            map.panTo(gmMarkers[0].position);
+        } else {
+            let bounds = new google.maps.LatLngBounds();
+
+            gmMarkers.forEach(function (marker) {
+                bounds.extend(marker.position);
+            });
+
+            map.panTo(bounds.getCenter());
+            map.fitBounds(bounds);
+        }
+    }
+}
 
 /**----------------------------------------------------
 * PUBLIC API
