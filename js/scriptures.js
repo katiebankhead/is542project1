@@ -69,18 +69,46 @@ let volumes;
 /**----------------------------------------------------
 * PRIVATE METHODS
 */
-const addMarker = function (placename, latitude, longitude) {
-    //TODO: check to see if we already have this lat/long in the gmMarkers array
-    let pos = { lat: Number(latitude), lng: Number(longitude) };
-    let marker = new google.maps.Marker({
-        position: pos,
-        map,
-        title: placename,
-        label: placename,
-        animation: google.maps.Animation.DROP,
-    });
 
-    gmMarkers.push(marker);
+// current error is coming somewhere from this logic
+const addMarker = function (placename, latitude, longitude) {
+    let index = markerIndex(latitude, longitude);
+
+    if (index >= 0){
+        // if lat/lng is already in gmMarkers, merge the placename
+        mergePlacename(placename, index);
+    } else {
+        // create map marker
+        let marker = new google.maps.Marker({
+            position: { lat: Number(latitude), lng: Number(longitude) },
+            map,
+            title: placename,
+            animation: google.maps.Animation.DROP,
+        });
+
+        gmMarkers.push(marker);
+
+        // initialize labels
+        if (!initializedMapLabel) {
+            const initialize = MapLabelInit;
+
+            initialize();
+            initializedMapLabel = true;
+        }
+
+        // create map marker label
+        let mapLabel = new MapLabel({
+            text: marker.getTitle(),
+            position: new google.maps.LatLng(Number(latitude), Number(longitude)),
+            map,
+            fontSize: 16,
+            fontColor: "#201000",
+            strokeColor: "#fff8f0",
+            align: "left"
+        });
+
+        gmLabels.push(mapLabel);
+    }
 };
 
 const ajax = function (url, successCallback, failureCallback, skipJsonParse) {
@@ -357,8 +385,38 @@ const injectBreadcrumbs = function(volume, book, chapter) {
     document.getElementById(DIV_BREADCRUMBS).innerHTML = htmlElement(TAG_UNORDERED_LIST, crumbs);
 }
 
-// TODO: markerIndex() function
-// TODO: mergePlacename() function
+const markerIndex = function(latitude, longitude) {
+    let i = gmMarkers.length - 1; // get last marker in array
+
+    while (i >= 0) { // while gmMarkers contains at least one marker
+        let marker = gmMarkers[i];
+
+        // safe way to compare IEEE floating point numbers (weird JS quirks)
+        const latitudeDelta = Math.abs(marker.getPosition().lat() - latitude);
+        const longitudeDelta = Math.abs(marker.getPosition().lng() - longitude);
+
+        // if marker is already in array, return index
+        if (latitudeDelta < 0.00000001 && longitudeDelta < 0.00000001){
+            return i;
+        }
+
+        i -= 1;
+    }
+
+    return -1;
+};
+
+const mergePlacename = function (placename, index) {
+    let marker = gmMarkers[index];
+    let label = gmLabels[index];
+    let title = marker.getTitle();
+
+    if (!title.includes(placename)) {
+        title += ", " + placename;
+        marker.setTitle();
+        label.text = title;
+    }
+};
 
 const navigateBook = function (bookId) {
     let book = books[bookId];
