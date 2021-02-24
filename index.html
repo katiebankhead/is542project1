@@ -7,11 +7,12 @@
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="manifest" href="site.webmanifest">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOURKEYHERE">
+  <script src="https://maps.googleapis.com/maps/api/js?key=INSERTKEYHERE">
   </script>
+  <script defer src="js/maplabel.js"></script>
 </head>
 
 <body>
@@ -31,16 +32,13 @@
 
   <script type="text/javascript">
     let map;
+    let showLocation;
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 31.7683, lng: 35.2137 },
         zoom: 8,
       });
-    }
-
-    function showLocation() {
-      Scriptures.showLocation(...arguments);
     }
   </script>
 
@@ -57,6 +55,7 @@
 
       ready(function () {
         module.default.init(() => { module.default.onHashChanged() });
+        showLocation = module.default.showLocation;
         window.addEventListener("hashchange", module.default.onHashChanged);
 
         initMap();
