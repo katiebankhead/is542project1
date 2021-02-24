@@ -10,11 +10,12 @@
     console, map
 */
 /*property
-    books, classKey, content, forEach, fullName, getElementById, gridName, hash,
-    href, id, init, innerHTML, length, log, maxBookId, minBookId, numChapters,
-    onHashChanged, onerror, onload, open, parse, push, response, send, slice,
-    split, status, Animation, DROP, Marker, animation, label, lat, lng, map, maps, position,
-    title
+    Animation, DROP, LatLng, Marker, abs, align, animation, books, catch,
+    classKey, content, fontColor, fontSize, forEach, fullName, getElementById,
+    getPosition, getTitle, gridName, hash, href, id, includes, innerHTML, json,
+    lat, length, lng, map, maps, maxBookId, minBookId, numChapters, ok,
+    parentBookId, position, push, querySelectorAll, setMap, setTitle, slice,
+    split, strokeColor, text, then, title, tocName
 */
 
 "use strict";
@@ -83,12 +84,12 @@ const addMarker = function (placename, latitude, longitude) {
             position: { lat: Number(latitude), lng: Number(longitude) },
             map,
             title: placename,
-            animation: google.maps.Animation.DROP,
+            animation: google.maps.Animation.DROP
         });
 
         gmMarkers.push(marker);
 
-        // initialize labels
+        // // initialize labels
         if (!initializedMapLabel) {
             const initialize = MapLabelInit;
 
@@ -213,16 +214,19 @@ const chaptersGridContent = function (book) {
     return gridContent;
 };
 
-// TODO: update to match Liddle's code
 const clearMarkers = function () {
-    gmMarkers.forEach(function (marker) {
-        marker.setMap(null);
-    });
+    disconnectMapFromMarkers(gmMarkers);
+    disconnectMapFromMarkers(gmLabels);
 
     gmMarkers = [];
+    gmLabels = [];
 };
 
-//TODO: disconnectMapFromMarkers()
+const disconnectMapFromMarkers = function (markers) {
+    markers.forEach(function (marker) {
+        marker.setMap(null);
+    });
+}
 
 const encodedScripturesUrlParameters = function (bookId, chapter, verses, isJst) {
     if (bookId !== undefined && chapter !== undefined) {
@@ -406,6 +410,18 @@ const markerIndex = function(latitude, longitude) {
     return -1;
 };
 
+// const mergePlacename = function (placename, index) {
+//     let marker = gmMarkers[index];
+//     let label = gmLabels[index];
+//     let title = marker.getTitle();
+
+//     if (!title.includes(placename)) {
+//         title += ", " + placename;
+//         marker.setTitle();
+//         label.text = title;
+//     }
+// };
+
 const mergePlacename = function (placename, index) {
     let marker = gmMarkers[index];
     let label = gmLabels[index];
@@ -413,7 +429,7 @@ const mergePlacename = function (placename, index) {
 
     if (!title.includes(placename)) {
         title += ", " + placename;
-        marker.setTitle();
+        marker.setTitle(title);
         label.text = title;
     }
 };
@@ -580,8 +596,8 @@ const setupMarkers = function () {
 
         if (matches) {
             let placename = matches[INDEX_PLACENAME];
-            let latitude = matches[INDEX_LATITUDE];
-            let longitude = matches[INDEX_LONGITUDE];
+            let latitude = parseFloat(matches[INDEX_LATITUDE]);
+            let longitude = parseFloat(matches[INDEX_LONGITUDE]);
             let flag = matches[INDEX_FLAG];
 
             if (flag !== "") {
@@ -591,14 +607,13 @@ const setupMarkers = function () {
             addMarker(placename, latitude, longitude);
         }
     });
-    
     zoomMapToFitMarkers(matches);
 };
 
-// TODO: update to match Dr. Liddle's
-const showLocation = function (geotagId, placename, latitude, longitude, viewLatitude, viewLongitude,
-    viewTilt, viewRoll, viewAltitude, viewHeading) {
-    console.log(viewAltitude);
+const showLocation = function (id, placename, latitude, longitude, viewLatitude, viewLongitude, viewTilt, viewRoll, viewAltitude, viewHeading) {
+    console.log(id, placename, latitude, longitude, viewLatitude, viewLongitude, viewTilt, viewRoll, viewHeading);
+    map.panTo({lat: latitude, lng: longitude});
+    map.setZoom(Math.round(viewAltitude / ZOOM_RATIO));
 };
 
 const titleForBookChapter = function (book, chapter) {
